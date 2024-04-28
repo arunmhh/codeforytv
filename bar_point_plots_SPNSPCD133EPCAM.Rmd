@@ -1,0 +1,761 @@
+---
+title: "Pathways"
+author: "Arun Kumar"
+date: "2024-04-26"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+```{r}
+cd109 <- read_excel("data/wilcoxontest.xlsx", sheet = 6)
+cd109_1 <- melt(cd109)
+colnames(cd109_1)[1] <- "group"
+
+
+
+stat3(data = cd109_1,group = "group",value = "value",formula = value~group)
+spfa <- stat3result[["stat"]]
+```
+
+
+
+
+```{r}
+my_comparisons <- list( c("CD133+FA", "CD133+DMSO"))
+ggbarplot(cd109_2, x = "group", y = "value",
+          add = c( "mean_se"),  # Combine add arguments into a single vector
+          color = "group",
+          palette = c("#FF0000","#000099")) +
+   stat_compare_means(ref.group = "CD133+DMSO",
+                     label = "p.signif",
+                     method = "t.test",
+                     test = "Welch's t-test") +
+  stat_compare_means(comparisons = my_comparisons, label.y = c(6))
+  theme_classic() 
+```
+
+
+```{r}
+tes <- spfa[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- cd109_1 
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+   stat.test2 <- left_join(spfa,tes,by=c("group1","group2"))
+```
+
+
+```{r}
+ggbarplot(cd109_1, x = "group", y = "value",
+          add = c( "mean_se"),  # Combine add arguments into a single vector
+          color = "group",
+          palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+  theme_classic() + 
+  stat_pvalue_manual(stat.test2,label = "p.adj.signif")
+```
+
+###############################################################################
+
+
+```{r}
+cc_spfa <- read_excel("data/wilcoxontest.xlsx", sheet = 8, skip = 1)
+```
+
+```{r}
+
+cc_spfa1 <- cc_spfa %>%  mutate_at(vars(4:11), as.numeric)
+cc_spfa1 %>% dplyr::select(2:14) %>% 
+  pivot_longer(cols = 2:13,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d", "", group)) %>% 
+  group_by(group)->cc_spfa1_long
+cc_spfa1_long <- as.data.frame(cc_spfa1_long)
+```
+
+
+```{r}
+# Get unique IDs
+unique_ids <- unique(cc_spfa1_long$variable)
+
+
+ls1 <- list()
+for (id in unique_ids){
+  
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = cc_spfa1_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  ls1[[id]] <- stat3result[["stat"]]
+}
+
+resultforall <- do.call(rbind, ls1)
+```
+
+
+```{r}
+ls2 <- list()##creat an empty list
+
+for (u in unique(cc_spfa1_long$variable)) {
+tes <- resultforall %>% 
+    filter(variable == u) %>% 
+    select(group1,group2,variable) 
+  
+  tt <- cc_spfa1_long %>% filter(variable == u )  
+  ##Y-axis position  
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12 # first position and loop
+  
+  for (e in 1:(length(tes$variable)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  ls2[[u]] <- tes
+}
+
+tes.yp <- do.call(rbind, ls2)
+
+stat.test2 <- left_join(resultforall,tes.yp,by=c("group1","group2","variable"))
+```
+
+```{r}
+p = ggbarplot(cc_spfa1_long, x = "group", y = "value", add = c("mean_se"),
+              color = "group",size=1.5,
+              palette = c("#FF0000","#339900","#FF0000","#000099"),
+              facet.by = "variable")+
+              theme_bw()+
+              facet_wrap(~ variable,scales = "free")+
+              labs(x = NULL, y = NULL)
+p
+##添加上p label
+ p1= p + stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+ p1
+```
+
+
+
+
+
+```{r}
+
+
+p = ggbarplot(cc_spfa1_long, x = "group", y = "value", add = c("mean_se"),
+              color = "group",size=1.5,
+              palette = c("#FF0000","#339900","#FF0000","#000099"))+
+  theme_bw()
+print(p)
+  p+stat_pvalue_manual(stat.test2,label = "p.adj.signif")
+```
+
+## cell cycle gene SPNSP (FA DMSO)
+
+```{r}
+cc_spfa <- read_excel("data/wilcoxontest.xlsx", sheet = 8, skip = 1)
+
+cc_spfa1 <- cc_spfa %>%  mutate_at(vars(4:11), as.numeric)
+cc_spfa1 %>% dplyr::select(2:14) %>% 
+  pivot_longer(cols = 2:13,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d", "", group)) %>% 
+  group_by(group)->cc_spfa1_long
+cc_spfa1_long <- as.data.frame(cc_spfa1_long)
+
+unique_ids <- unique(cc_spfa1_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = cc_spfa1_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- cc_spfa1_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("cellcycle/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+## cell cycle gene CD133+FA CD133+DMSO, CD133-FA, CD133-DMSO)
+
+```{r}
+cc_epcam <- read_excel("data/wilcoxontest.xlsx", sheet = 9, skip = 1)
+
+cc_epcam1 <- cc_epcam %>%  mutate_at(vars(3:11), as.numeric)
+cc_epcam1 %>% dplyr::select(2:14) %>% 
+  pivot_longer(cols = 2:13,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d", "", group)) %>% 
+  group_by(group)->cc_epcam1_long
+cc_epcam1_long <- as.data.frame(cc_epcam1_long)
+```
+
+
+```{r}
+unique_ids <- unique(cc_epcam1_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = cc_epcam1_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- cc_epcam1_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("cellcycle_Epcam/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+## CD133_PN_FA_DMSO ###
+
+
+```{r}
+cc_cd133 <- read_excel("data/wilcoxontest.xlsx", sheet = 10, skip = 1)
+
+cc_cd1331 <- cc_cd133 %>%  mutate_at(vars(4:19), as.numeric)
+
+cc_cd1331 %>% dplyr::select(2, 4:19) %>% 
+  pivot_longer(cols = 2:17,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d$", "", group)) %>%
+  group_by(group)->cc_cd1331_long
+cc_cd1331_long <- as.data.frame(cc_cd1331_long)
+
+
+
+```
+
+
+```{r}
+unique_ids <- unique(cc_cd1331_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = cc_cd1331_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- cc_cd1331_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("cellcycle_CD133/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+######################### DESTEBLIZERS##################
+
+### Destablizer_SPNSP####
+
+```{r}
+destb_SPNSP <- read_excel("data/wilcoxontest.xlsx", sheet = 13, skip = 1)
+
+destb_SPNSP <- destb_SPNSP %>%  mutate_at(vars(3:14), as.numeric)
+
+destb_SPNSP %>% dplyr::select(1,3:14) %>% 
+  pivot_longer(cols = 2:13,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d$", "", group)) %>%
+  group_by(group)->destb_SPNSP_long
+destb_SPNSP_long <- as.data.frame(destb_SPNSP_long)
+
+
+### loop
+
+unique_ids <- unique(destb_SPNSP_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = destb_SPNSP_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- destb_SPNSP_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("Destablizers_SPNSP/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+
+
+
+### CD133####
+
+```{r}
+destb_cd133 <- read_excel("data/wilcoxontest.xlsx", sheet = 11, skip = 1)
+
+destb_cd1331 <- destb_cd133 %>%  mutate_at(vars(3:18), as.numeric)
+
+destb_cd1331 %>% dplyr::select(2:18) %>% 
+  pivot_longer(cols = 2:17,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d$", "", group)) %>%
+  group_by(group)->destb_cd1331_long
+destb_cd1331_long <- as.data.frame(destb_cd1331_long)
+
+
+### loop
+
+unique_ids <- unique(destb_cd1331_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = destb_cd1331_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- destb_cd1331_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("Destablizers_CD133/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+### Destablizer_EpCAM####
+
+```{r}
+destb_Epcam <- read_excel("data/wilcoxontest.xlsx", sheet = 12, skip = 1)
+
+destb_Epcam <- destb_Epcam %>%  mutate_at(vars(3:14), as.numeric)
+
+destb_Epcam %>% dplyr::select(1,3:14) %>% 
+  pivot_longer(cols = 2:13,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d$", "", group)) %>%
+  group_by(group)->destb_Epcam_long
+destb_Epcam_long <- as.data.frame(destb_Epcam_long)
+
+
+### loop
+
+unique_ids <- unique(destb_Epcam_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = destb_Epcam_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- destb_Epcam_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("Destablizers_EpCAM/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+
+
+######################### CSC MARKERS ##################
+
+ ### CSC_SPNSP####
+
+```{r}
+csc_SPNSP <- read_excel("data/wilcoxontest.xlsx", sheet = 14, skip = 1)
+
+csc_SPNSP <- csc_SPNSP %>%  mutate_at(vars(3:14), as.numeric)
+
+csc_SPNSP %>% dplyr::select(1,3:14) %>% 
+  pivot_longer(cols = 2:13,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d$", "", group)) %>%
+  group_by(group)->csc_SPNSP_long
+csc_SPNSP_long <- as.data.frame(csc_SPNSP_long)
+
+
+### loop
+
+unique_ids <- unique(csc_SPNSP_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = csc_SPNSP_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- csc_SPNSP_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("CSCMarkers/csc_SPNSP/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+ ### CSC_CD133####
+
+```{r}
+CSC_CD133 <- read_excel("data/wilcoxontest.xlsx", sheet = 15, skip = 1)
+
+CSC_CD133 <- CSC_CD133 %>%  mutate_at(vars(3:18), as.numeric)
+
+CSC_CD133 %>% dplyr::select(1,3:18) %>% 
+  pivot_longer(cols = 2:17,
+               names_to = "group",
+               values_to = "value") %>% 
+  mutate(group = gsub("\\d$", "", group)) %>%
+  group_by(group)->CSC_CD133_long
+CSC_CD133_long <- as.data.frame(CSC_CD133_long)
+
+
+### loop
+
+unique_ids <- unique(CSC_CD133_long$variable)
+
+for (id in unique_ids){
+  # Subset data for the current ID
+  # id_data <- cc_spfa1_long[cc_spfa1_long$variable == id, ]
+  stat3(data = CSC_CD133_long ,group = "group",value = "value",
+        variable = "variable", id = id,
+        formula = value~group)
+  stat_result <- stat3result[["stat"]]
+  
+  tes <-  stat_result[,c(1,2)]
+  ##select all the data of the dataframe
+  tt <- CSC_CD133_long %>% filter(variable == id )
+  ##set a new NA column for y position 
+  tes$y.position <- NA
+  tes$y.position[1] <-max(tt$value)*1.12
+  #set the first y position
+  #use a for loop to set the rest y position 
+  for (e in 1:(length(tes$group2)-1)) {
+    tes$y.position[e+1] <-tes$y.position[e]*1.08
+  }
+  
+  stat.test2 <- left_join(stat_result,tes,by=c("group1","group2"))
+  
+  
+  p = ggbarplot(tt, x = "group", y = "value",
+            add = c( "mean_se"),  # Combine add arguments into a single vector
+            color = "group",
+            palette = c("#FF0000","#000099","#FF0000","#000099"))+ 
+            labs(title = (paste0( id)),
+            y = "Signal Instenstiy (log2)")+
+    theme_classic() + 
+    theme(plot.title = element_text(hjust = 0.5, size = (20)), 
+      strip.text.y = element_text(size = 15),
+      legend.position ="right",
+      legend.title = element_text(size=18),
+      legend.text = element_text(size=14),
+      axis.text.x = element_text(size=14),
+      axis.text.y = element_text(size=18),
+      axis.title.x = element_text(size=14),
+      axis.title.y = element_text(size=14))+
+    stat_pvalue_manual(stat.test2,label = "p.adj.signif", hide.ns = TRUE)
+  
+  ggsave(p, file= paste0("CSCMarkers/CSC_CD133/",id," .tiff"),units="in", width=5, height=4, dpi=200, compression = 'lzw')
+  
+}
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
