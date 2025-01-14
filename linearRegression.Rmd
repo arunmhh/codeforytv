@@ -1,0 +1,108 @@
+---
+title: "linear regression"
+author: "Codewithbiologist"
+date: "2025-01-12"
+output: 
+  html_document: 
+    fig_width: 6
+    fig_height: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+```
+
+
+```{r}
+cars
+```
+
+
+```{r}
+cars %>% 
+  lm( dist ~speed, data = .) %>% 
+  summary()
+```
+
+
+
+```{r}
+plot(x =cars$speed, y = cars$dist,
+     col = "blue",
+     xlab = "speed",
+     ylab = "dist")
+mod <- lm(dist ~ speed, data = cars)
+
+abline (mod, col = "red",lwd =2)
+```
+
+
+```{r}
+#library(performance)
+check_model(mod)
+```
+
+
+```{r}
+check_normality(mod)
+```
+
+
+```{r}
+library(sjPlot)
+```
+
+```{r}
+plot_model(mod, type = "eff", 
+           terms = "speed", 
+           show.data = TRUE)
+```
+
+
+
+```{r}
+plot_model(mod, show.values = TRUE, terms = "speed")
+```
+
+
+```{r}
+tab_model(mod)
+```
+
+
+```{r}
+plot_model(mod, type = "eff",
+           terms = "speed [0:30]",
+           show.data = TRUE,
+           jitter = TRUE)
+```
+
+```{r}
+predict(mod, data.frame(speed = c(10,15,20)))
+```
+
+```{r}
+library(emmeans)
+emmeans(mod,~speed, at = list(speed = c(10,15,20)))
+```
+
+
+```{r}
+library(effectsize)
+interpret_r2(0.651, rules = "cohen1988")
+```
+
+
+```{r}
+library(report)
+report(mod)
+```
+
+
+
